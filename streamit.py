@@ -11,6 +11,18 @@ import os
 model= joblib.load("predictor.pkl")
 data = pd.read_csv("finaldata.csv")
 
+class AutogluonWrapper:
+    def __init__(self, predictor, feature_names):
+        self.ag_model = predictor
+        self.feature_names = feature_names
+
+    def predict_proba(self, X):
+        """将输入转换为AutoGluon需要的格式并返回概率预测"""
+        if len(X.shape) == 1:
+            X = X.reshape(1, -1)
+        if not isinstance(X, pd.DataFrame):
+            X = pd.DataFrame(X, columns=self.feature_names)
+        return self.ag_model.predict_proba(X).values
 #特征范围定义（根据提供的特征范围和数据类型）
 feature_ranges ={
  "BASO,10^9/L":{"type":"numerical","min":0.000,"max":0.1,"default":0.02},
@@ -77,17 +89,23 @@ ax.axis ('off')
 plt.savefig ("prediction_text.png", bbox_inches ='tight', dpi =300)
 st.image ("prediction_text.png")
 #计算 SHAP
-explainer = shap.KernelExplainer(model,data)
-shap_values = explainer.shap_values(pd.DataFrame([feature_values], columns = feature_ranges.keys ()))
+ag_wrapper = AutogluonWrapper(model, list(feature_ranges.keys()))
+background_data = pd.read_csv("finaldata.csv")
+explainer = shap.KernelExplainer(
+    ag_wrapper.predict_proba,
+    shap.kmeans(background_data.values, 10)
+)
+shap_values = explainer.shap_values(input_df.values)
 
 #生成 SHAP 力图
 class_index = predicted_class #当前预测类别
-shap_fig = shap.force_plot (
- explainer.expected_value[class_index],
- shap_values[:,:,class_index],
- pd.DataFrame([feature_values], columns = feature_ranges.keys ()),
- matplotlib = True,
+fig, ax = plt.subplots(figsize=(10, 3))
+matplotlib_force_plot(
+    explainer.expected_value[1],
+    shap_values[1],
+    input_df.iloc[0],
+    matplotlib=True,
+    ax=ax
 )
-#保存并显示 SHAP 图
-plt.savefig (" shap_force_plot.png",bbox_inches =' tight ', dpi =1200)
-st.image ("shap_force_plot.png")
+plt.tight_layout()
+st.pyplot(fig)
