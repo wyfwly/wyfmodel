@@ -76,7 +76,7 @@ if st.button("Predict"):
 
     # 获取预测概率
     proba_df = model.predict_proba(input_data)
-    probability = proba_df[0][1] * 100  # 获取正类的概率
+    probability = proba_df.iloc[0, 1] * 100  # 获取正类的概率
 
     # 显示预测结果
     text = f"Based on feature values, predicted possibility of CVD is {probability:.2f}%"
