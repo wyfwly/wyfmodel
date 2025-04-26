@@ -9,7 +9,7 @@ import os
 
 #加载保存的随机森林模型
 model= joblib.load("predictor.pkl")
-data = pd.DataFrame("finaldata.csv")
+data = pd.read_csv("finaldata.csv")
 
 #特征范围定义（根据提供的特征范围和数据类型）
 feature_ranges ={
