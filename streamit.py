@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 from autogluon.tabular import TabularPredictor
 import os
 
-#加载保存的随机森林模型
+#加载保存的模型
 model= joblib.load("predictor.pkl")
 data = pd.read_csv("finaldata.csv")
 
@@ -73,39 +73,61 @@ features = np.array([feature_values])
 if st.button("Predict"):
     # 将输入数据转为DataFrame（AutoGluon需要）
     input_data = pd.DataFrame([feature_values], columns=feature_ranges.keys())
-    proba_df = predictor.predict_proba(input_data)
-    probability = proba_df.iloc[0, 1] * 100  # 假设预测第二类的概率
-#显示预测结果，使用 Matplotlib 渲染指字体
-text = f" Based on feature values , predicted possibility of CVD is ( probability:.2f)%"
-fig, ax = plt.subplots (figsize =(8,1))
-ax.text (
-0.5,0.5,text,
- fontsize =16,
- ha ='center', va ='center',
- fontname ='Times New Roman',
- transform = ax.transAxes
- )
-ax.axis ('off')
-plt.savefig ("prediction_text.png", bbox_inches ='tight', dpi =300)
-st.image ("prediction_text.png")
-#计算 SHAP
-ag_wrapper = AutogluonWrapper(model, list(feature_ranges.keys()))
-background_data = pd.read_csv("finaldata.csv")
-explainer = shap.KernelExplainer(
-    ag_wrapper.predict_proba,
-    shap.kmeans(background_data.values, 10)
-)
-shap_values = explainer.shap_values(input_df.values)
 
-#生成 SHAP 力图
-class_index = predicted_class #当前预测类别
-fig, ax = plt.subplots(figsize=(10, 3))
-matplotlib_force_plot(
-    explainer.expected_value[1],
-    shap_values[1],
-    input_df.iloc[0],
-    matplotlib=True,
-    ax=ax
-)
-plt.tight_layout()
-st.pyplot(fig)
+    # 获取预测概率
+    proba_df = model.predict_proba(input_data)
+    probability = proba_df[0][1] * 100  # 获取正类的概率
+
+    # 显示预测结果
+    text = f"Based on feature values, predicted possibility of CVD is {probability:.2f}%"
+    fig, ax = plt.subplots(figsize=(8, 1))
+    ax.text(
+        0.5, 0.5, text,
+        fontsize=16,
+        ha='center', va='center',
+        fontname='Times New Roman',
+        transform=ax.transAxes
+    )
+    ax.axis('off')
+    st.pyplot(fig)
+
+    # 计算 SHAP 值
+    try:
+        # 使用样本数据作为背景
+        background = data.sample(100, random_state=42)
+
+        # 创建解释器
+        explainer = shap.KernelExplainer(
+            model.predict_proba,
+            background
+        )
+
+        # 计算SHAP值
+        shap_values = explainer.shap_values(input_data)
+
+        # 生成 SHAP 力图
+        st.subheader("SHAP Force Plot")
+        fig, ax = plt.subplots(figsize=(10, 4))
+        shap.force_plot(
+            explainer.expected_value[1],  # 使用正类的期望值
+            shap_values[1][0],  # 正类的SHAP值
+            input_data.iloc[0],
+            matplotlib=True,
+            show=False,
+            figsize=(12, 4)
+        )
+        st.pyplot(fig)
+
+        # 也可以添加摘要图
+        st.subheader("SHAP Summary Plot")
+        fig, ax = plt.subplots(figsize=(10, 6))
+        shap.summary_plot(
+            shap_values[1],  # 正类的SHAP值
+            background,
+            plot_type="bar",
+            show=False
+        )
+        st.pyplot(fig)
+
+    except Exception as e:
+        st.error(f"Error generating SHAP explanation: {str(e)}")
