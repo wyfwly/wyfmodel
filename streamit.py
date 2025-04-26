@@ -9,41 +9,41 @@ import matplotlib.pyplot as plt
 model = joblib . load ("predictor.pkl")
 #特征范围定义（根据提供的特征范围和数据类型）
 feature_ranges ={
-"BASO,10^9/L":{"type":" numerical", "min":0.000,"max":0.1,"default":0.02},
-"CHE,U/L":{"type":"numerical","min":0.000,"max":15.00,"default":6.17},
-"MPV,fL":{"type":"numerical","min":0.000,"max":20.00,"default":10.73},
-"Hb,g/L":{"type":"numerical","min":0.000,"max":200,"default":110.0},
-"PLT,10^9/L":{"type":"numerical","min":0.000,"max":1000.00,"default":150.0},
-"u.WBC,/uL":{"type":"numerical","min":0.000,"max":1500.00,"default":50.00},
-"GLU,mmol/L":{"type":"numerical","min":0.000,"max":60.00,"default":6.00},
-"MCV,fL":{"type":"numerical","min":0.000,"max":150.00,"default":90.00},
-"GGT,U/L":{"type":"numerical","min":0.000,"max":1000.00,"default":50.00},
-"RDW-SD,fL":{"type":"numerical","min":0.000,"max":200,"default":50.00},
-"LY%":{"type":"numerical","min":0.000,"max":100.00,"default":24.00},
-"age,year":{"type":"numerical","min":18.00,"max":100.00,"default":43.00},
-"aRO52(1:100)":{"type":"categorical","options":[0,1,2,3],"default":0}
+ "BASO,10^9/L":{"type":" numerical", "min":0.000,"max":0.1,"default":0.02},
+ "CHE,U/L":{"type":"numerical","min":0.000,"max":15.00,"default":6.17},
+ "MPV,fL":{"type":"numerical","min":0.000,"max":20.00,"default":10.73},
+ "Hb,g/L":{"type":"numerical","min":0.000,"max":200,"default":110.0},
+ "PLT,10^9/L":{"type":"numerical","min":0.000,"max":1000.00,"default":150.0},
+ "u.WBC,/uL":{"type":"numerical","min":0.000,"max":1500.00,"default":50.00},
+ "GLU,mmol/L":{"type":"numerical","min":0.000,"max":60.00,"default":6.00},
+ "MCV,fL":{"type":"numerical","min":0.000,"max":150.00,"default":90.00},
+ "GGT,U/L":{"type":"numerical","min":0.000,"max":1000.00,"default":50.00},
+ "RDW-SD,fL":{"type":"numerical","min":0.000,"max":200,"default":50.00},
+ "LY%":{"type":"numerical","min":0.000,"max":100.00,"default":24.00},
+ "age,year":{"type":"numerical","min":18.00,"max":100.00,"default":43.00},
+ "aRO52(1:100)":{"type":"categorical","options":[0,1,2,3],"default":0}
 }
 #Streamlit 界面
 st.title (" Prediction Model with SHAP Visualization ")
 #动态生成输入项
 st.header ("Enter the following feature values :")
-feature_values =[]
+feature_values = []
 for feature, properties in feature_ranges.items():
- if properties["type"] == "numerical":
-  value = st.number_input(
-   label=f"{feature} ({properties['min']} - {properties['max']})",
-   min_value = float(properties["min"]),
-  max_value = float(properties["max"]),
-  value = float(properties["default"]),
-  )
- elif properties["type"] == "categorical":
-  value = st.selectbox(
-  label=f"(feature) (Select a value)",
-        options=properties["options"],
- )
- feature_values.append(value)
- #转化为模型输入模式
- features = np.array([feature_values])
+    if properties["type"] == "numerical":
+        value = st.number_input(
+            label=f"{feature} ({properties['min']} - {properties['max']})",
+            min_value=float(properties["min"]),
+            max_value=float(properties["max"]),
+            value=float(properties["default"]),
+        )
+    elif properties["type"] == "categorical":
+        value = st.selectbox(
+            label=f"{feature} (Select a value)",  # 修复：f-string缺少变量引用
+            options=properties["options"],
+        )
+    feature_values.append(value)  #确保在获取value后执行
+
+features = np.array([feature_values])
  #预测与 SHAP 可视化
 if st.button("Predict"):
  predicted_class = model.predict(features)[0]
