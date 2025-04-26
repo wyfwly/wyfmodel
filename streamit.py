@@ -9,6 +9,7 @@ import os
 
 #加载保存的随机森林模型
 model= joblib.load("predictor.pkl")
+data = pd.DataFrame("finaldata.csv")
 
 #特征范围定义（根据提供的特征范围和数据类型）
 feature_ranges ={
@@ -76,7 +77,7 @@ ax.axis ('off')
 plt.savefig ("prediction_text.png", bbox_inches ='tight', dpi =300)
 st.image ("prediction_text.png")
 #计算 SHAP
-explainer = shap.KernelExplainer(model)
+explainer = shap.KernelExplainer(model,data)
 shap_values = explainer.shap_values(pd.DataFrame([feature_values], columns = feature_ranges.keys ()))
 
 #生成 SHAP 力图
