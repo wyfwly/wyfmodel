@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 model = joblib . load ("predictor.pkl")
 #特征范围定义（根据提供的特征范围和数据类型）
 feature_ranges ={
- "BASO,10^9/L":{"type":"numerical", "min":0.000,"max":0.1,"default":0.02},
+ "BASO,10^9/L":{"type":"numerical","min":0.000,"max":0.1,"default":0.02},
  "CHE,U/L":{"type":"numerical","min":0.000,"max":15.00,"default":6.17},
  "MPV,fL":{"type":"numerical","min":0.000,"max":20.00,"default":10.73},
  "Hb,g/L":{"type":"numerical","min":0.000,"max":200,"default":110.0},
