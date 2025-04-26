@@ -56,7 +56,7 @@ if st.button("Predict"):
     input_df = pd.DataFrame([feature_values], columns=feature_ranges.keys())
     
     # 获取概率预测
-    proba_df = predictor.predict_proba(input_df)
+    proba_df = model.predict_proba(input_df)
     probability = proba_df.iloc[0, 1]*100  # 取正例概率 
 #显示预测结果，使用 Matplotlib 渲染指字体
 text = f" Based on feature values , predicted possibility of CVD is ( probability:.2f)%"
