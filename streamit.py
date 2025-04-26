@@ -5,6 +5,7 @@ import pandas as pd
 import shap
 import matplotlib.pyplot as plt
 from autogluon.tabular import TabularPredictor
+import os
 
 #加载保存的随机森林模型
 model= joblib.load("predictor.pkl")
@@ -72,7 +73,7 @@ ax.text (
  transform = ax.transAxes
  )
 ax.axis ('off')
-plt.savefig (" prediction_text.png", bbox_inches ='tight', dpi =300)
+plt.savefig ("prediction_text.png", bbox_inches ='tight', dpi =300)
 st.image ("prediction_text.png")
 #计算 SHAP
 explainer = shap.KernelExplainer(model)
@@ -88,4 +89,4 @@ shap_fig = shap.force_plot (
 )
 #保存并显示 SHAP 图
 plt.savefig (" shap_force_plot.png",bbox_inches =' tight ', dpi =1200)
-st.image (" shap_force_plot.png ")
+st.image ("shap_force_plot.png")
