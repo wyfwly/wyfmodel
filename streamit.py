@@ -73,7 +73,7 @@ ax.text (
  )
 ax.axis ('off')
 plt.savefig (" prediction_text.png", bbox_inches ='tight', dpi =300)
-st.image ("prediction_text.png ")
+st.image ("prediction_text.png")
 #计算 SHAP
 explainer = shap.KernelExplainer(model)
 shap_values = explainer.shap_values(pd.DataFrame([feature_values], columns = feature_ranges.keys ()))
