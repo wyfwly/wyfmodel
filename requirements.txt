@@ -4,3 +4,4 @@ numpy==1.26.4
 pandas==2.2.2
 shap==0.45.1
 matplotlib==3.10.0
+autogluon == 1.1.1
