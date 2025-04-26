@@ -7,11 +7,7 @@ import matplotlib.pyplot as plt
 from autogluon.tabular import TabularPredictor
 
 #加载保存的随机森林模型
-model = TabularPredictor.load("predictor.pkl") 
-
-
-
-
+model= TabularPredictor.load(model_path)
 
 #特征范围定义（根据提供的特征范围和数据类型）
 feature_ranges ={
@@ -33,31 +29,38 @@ feature_ranges ={
 st.title (" Prediction Model with SHAP Visualization ")
 #动态生成输入项
 st.header ("Enter the following feature values :")
-# 动态输入
 feature_values = []
 for feature, properties in feature_ranges.items():
+    # 初始化value为None或合适的默认值
+    value = None
+
     if properties["type"] == "numerical":
         value = st.number_input(
-            label=f"{feature} ({properties['min']}-{properties['max']})",
+            label=f"{feature} ({properties['min']} - {properties['max']})",
             min_value=float(properties["min"]),
             max_value=float(properties["max"]),
             value=float(properties["default"]),
         )
     elif properties["type"] == "categorical":
         value = st.selectbox(
-            label=feature,
+            label=f"{feature} (Select a value)",
             options=properties["options"],
             index=properties["options"].index(properties["default"]),
         )
-    feature_values.append(value)
+
+    # 确保value已被赋值
+    if value is not None:
+        feature_values.append(value)
+    else:
+        st.warning(f"未处理的特征类型: {feature}")
+
+features = np.array([feature_values])
  #预测与 SHAP 可视化
-# 预测
 if st.button("Predict"):
-    input_df = pd.DataFrame([feature_values], columns=feature_ranges.keys())
-    
-    # 获取概率预测
-    proba_df = model.predict_proba(input_df)
-    probability = proba_df.iloc[0, 1]*100  # 取正例概率 
+    # 将输入数据转为DataFrame（AutoGluon需要）
+    input_data = pd.DataFrame([feature_values], columns=feature_ranges.keys())
+    proba_df = predictor.predict_proba(input_data)
+    probability = proba_df.iloc[0, 1] * 100  # 假设预测第二类的概率
 #显示预测结果，使用 Matplotlib 渲染指字体
 text = f" Based on feature values , predicted possibility of CVD is ( probability:.2f)%"
 fig, ax = plt.subplots (figsize =(8,1))
