@@ -29,6 +29,9 @@ st.title (" Prediction Model with SHAP Visualization ")
 st.header ("Enter the following feature values :")
 feature_values = []
 for feature, properties in feature_ranges.items():
+    # 初始化value为None或合适的默认值
+    value = None
+
     if properties["type"] == "numerical":
         value = st.number_input(
             label=f"{feature} ({properties['min']} - {properties['max']})",
@@ -38,10 +41,16 @@ for feature, properties in feature_ranges.items():
         )
     elif properties["type"] == "categorical":
         value = st.selectbox(
-            label=f"{feature} (Select a value)",  # 修复：f-string缺少变量引用
+            label=f"{feature} (Select a value)",
             options=properties["options"],
+            index=properties["options"].index(properties["default"]),
         )
-    feature_values.append(value)  #确保在获取value后执行
+
+    # 确保value已被赋值
+    if value is not None:
+        feature_values.append(value)
+    else:
+        st.warning(f"未处理的特征类型: {feature}")
 
 features = np.array([feature_values])
  #预测与 SHAP 可视化
