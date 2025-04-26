@@ -4,9 +4,15 @@ import numpy as np
 import pandas as pd
 import shap
 import matplotlib.pyplot as plt
+from autogluon.tabular import TabularPredictor
 
 #加载保存的随机森林模型
-model = joblib . load ("predictor.pkl")
+model = TabularPredictor.load("predictor.pkl") 
+
+
+
+
+
 #特征范围定义（根据提供的特征范围和数据类型）
 feature_ranges ={
  "BASO,10^9/L":{"type":"numerical","min":0.000,"max":0.1,"default":0.02},
@@ -27,38 +33,31 @@ feature_ranges ={
 st.title (" Prediction Model with SHAP Visualization ")
 #动态生成输入项
 st.header ("Enter the following feature values :")
+# 动态输入
 feature_values = []
 for feature, properties in feature_ranges.items():
-    # 初始化value为None或合适的默认值
-    value = None
-
     if properties["type"] == "numerical":
         value = st.number_input(
-            label=f"{feature} ({properties['min']} - {properties['max']})",
+            label=f"{feature} ({properties['min']}-{properties['max']})",
             min_value=float(properties["min"]),
             max_value=float(properties["max"]),
             value=float(properties["default"]),
         )
     elif properties["type"] == "categorical":
         value = st.selectbox(
-            label=f"{feature} (Select a value)",
+            label=feature,
             options=properties["options"],
             index=properties["options"].index(properties["default"]),
         )
-
-    # 确保value已被赋值
-    if value is not None:
-        feature_values.append(value)
-    else:
-        st.warning(f"未处理的特征类型: {feature}")
-
-features = np.array([feature_values])
+    feature_values.append(value)
  #预测与 SHAP 可视化
+# 预测
 if st.button("Predict"):
- predicted_class = model.predict(features)[0]
- predicted_proba = model.predict_proba(features)[0]
-#提取预测的类别概率
-probability = predicted_proba [predicted_class]*100
+    input_df = pd.DataFrame([feature_values], columns=feature_ranges.keys())
+    
+    # 获取概率预测
+    proba_df = predictor.predict_proba(input_df)
+    probability = proba_df.iloc[0, 1]*100  # 取正例概率 
 #显示预测结果，使用 Matplotlib 渲染指字体
 text = f" Based on feature values , predicted possibility of CVD is ( probability:.2f)%"
 fig, ax = plt.subplots (figsize =(8,1))
