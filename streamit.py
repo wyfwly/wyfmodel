@@ -94,39 +94,37 @@ if st.button("Predict"):
 
 # 计算SHAP值
 try:
-    # 1. 确保特征一致性
+    # 1. 准备数据
     required_features = list(feature_ranges.keys())
     background = data[required_features].sample(100, random_state=42)
     input_data = pd.DataFrame([feature_values], columns=required_features)
     
-    # 2. 更安全的预测包装器
+    # 2. 专用预测包装器（处理二分类输出）
     def predict_wrapper(X):
         if not isinstance(X, pd.DataFrame):
             X = pd.DataFrame(X, columns=required_features)
         proba = model.predict_proba(X)
-        # 处理二分类和多分类情况
-        return proba.values if hasattr(proba, 'values') else proba
+        # 明确返回正类概率作为一维数组
+        return proba.iloc[:, 1].values if hasattr(proba, 'iloc') else proba[:, 1]
     
-    # 3. 初始化解释器（使用最新API）
+    # 3. 初始化解释器
     explainer = shap.Explainer(
         predict_wrapper,
         background,
         feature_names=required_features
     )
     
-    # 4. 计算SHAP值（显式处理输出）
+    # 4. 计算SHAP值
     shap_values = explainer(input_data)
     
-    # 5. 统一SHAP值格式
-    if len(shap_values.shape) == 3:  # 多分类输出 (n_classes, n_samples, n_features)
-        shap_values = shap_values[1]  # 取正类解释
-    elif len(shap_values.shape) == 2:  # 二分类输出 (n_samples, n_features)
-        pass  # 直接使用
+    # 5. 调试信息（可选）
+    st.write("SHAP值形状:", shap_values.shape)
+    st.write("SHAP基础值:", shap_values.base_values)
     
     # 6. 生成可视化
     st.subheader("SHAP Force Plot")
     fig = shap.plots.force(
-        shap_values[0],  # 第一个样本
+        shap_values[0],  # 直接使用Explanation对象
         matplotlib=True,
         show=False
     )
@@ -142,10 +140,7 @@ try:
 
 except Exception as e:
     st.error(f"Error generating SHAP explanation: {str(e)}")
-    # 详细调试信息
     st.code(f"""
-    错误详情: {repr(e)}
-    输入数据形状: {input_data.shape if 'input_data' in locals() else 'N/A'}
-    模型输出示例: {model.predict_proba(input_data.head(1)) if 'input_data' in locals() else 'N/A'}
-    SHAP值类型: {type(shap_values) if 'shap_values' in locals() else 'N/A'}
+    模型输出类型: {type(model.predict_proba(input_data.head(1)))}
+    SHAP值内容: {str(dir(shap_values)) if 'shap_values' in locals() else 'N/A'}
     """, language='python')
