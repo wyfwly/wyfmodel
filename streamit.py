@@ -94,52 +94,48 @@ if st.button("Predict"):
 
 # 计算 SHAP 值
 try:
-    # 使用样本数据作为背景
+    # 准备背景数据（必须是DataFrame，且包含所有特征列）
     background = data[list(feature_ranges.keys())].sample(100, random_state=42)
     
-    # 创建预测包装函数
+    # 创建预测函数包装器（适配AutoGluon的输入输出格式）
     def predict_proba_wrapper(X):
         if isinstance(X, pd.DataFrame):
             return model.predict_proba(X).values
         else:
             return model.predict_proba(pd.DataFrame(X, columns=feature_ranges.keys())).values
     
-    # 创建解释器
+    # 初始化解释器
     explainer = shap.KernelExplainer(
         predict_proba_wrapper,
         background
     )
     
-    # 计算SHAP值
+    #  计算SHAP值
     shap_values = explainer.shap_values(input_data)
+    expected_value = explainer.expected_value
     
-    # 处理SHAP值输出
+    # 处理多分类/二分类的输出格式
     if isinstance(shap_values, list):
-        # 多分类情况 - 使用正类的SHAP值
-        shap_values_to_use = shap_values[1]
-        expected_value_to_use = explainer.expected_value[1]
-    else:
-        # 二分类情况
-        shap_values_to_use = shap_values
-        expected_value_to_use = explainer.expected_value
+        # 多分类模型：选择正类（索引1）的SHAP值
+        shap_values = shap_values[1]
+        expected_value = expected_value[1]
     
-    # 生成 SHAP 力图 (新版本API)
+    # 生成SHAP力图（新API格式）
     st.subheader("SHAP Force Plot")
-    fig, ax = plt.subplots(figsize=(10, 4))
-    shap.plots.force(
-        expected_value_to_use,
-        shap_values_to_use[0],  # 第一个样本的SHAP值
-        input_data.iloc[0],
-        matplotlib=True,
-        show=False
+    fig = shap.plots.force(
+        base_value=expected_value,       # 第一个参数必须是基础值
+        shap_values=shap_values[0],     # 单个样本的SHAP值
+        features=input_data.iloc[0],    # 特征值
+        matplotlib=True,                # 使用Matplotlib渲染
+        show=False                      # 不自动显示
     )
     st.pyplot(fig)
     
-    # 添加摘要图
+    # 生成SHAP摘要图
     st.subheader("SHAP Summary Plot")
     fig, ax = plt.subplots(figsize=(10, 6))
     shap.summary_plot(
-        shap_values_to_use,
+        shap_values,
         background,
         plot_type="bar",
         show=False
