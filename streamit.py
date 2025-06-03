@@ -97,13 +97,14 @@ try:
     # 使用样本数据作为背景
     background = data[list(feature_ranges.keys())].sample(100, random_state=42)
     
-    # 创建解释器 - 使用包装后的模型
+    # 创建预测包装函数
     def predict_proba_wrapper(X):
         if isinstance(X, pd.DataFrame):
             return model.predict_proba(X).values
         else:
             return model.predict_proba(pd.DataFrame(X, columns=feature_ranges.keys())).values
     
+    # 创建解释器
     explainer = shap.KernelExplainer(
         predict_proba_wrapper,
         background
@@ -114,24 +115,23 @@ try:
     
     # 处理SHAP值输出
     if isinstance(shap_values, list):
-        # 多分类情况
-        shap_values_to_use = shap_values[1]  # 使用正类的SHAP值
+        # 多分类情况 - 使用正类的SHAP值
+        shap_values_to_use = shap_values[1]
         expected_value_to_use = explainer.expected_value[1]
     else:
         # 二分类情况
         shap_values_to_use = shap_values
         expected_value_to_use = explainer.expected_value
     
-    # 生成 SHAP 力图
+    # 生成 SHAP 力图 (新版本API)
     st.subheader("SHAP Force Plot")
     fig, ax = plt.subplots(figsize=(10, 4))
-    shap.force_plot(
+    shap.plots.force(
         expected_value_to_use,
         shap_values_to_use[0],  # 第一个样本的SHAP值
         input_data.iloc[0],
         matplotlib=True,
-        show=False,
-        figsize=(12, 4)
+        show=False
     )
     st.pyplot(fig)
     
