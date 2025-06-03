@@ -94,67 +94,58 @@ if st.button("Predict"):
 
 # 计算SHAP值
 try:
-    # 1. 确保使用完全相同的特征列
+    # 1. 确保特征一致性
     required_features = list(feature_ranges.keys())
     background = data[required_features].sample(100, random_state=42)
     input_data = pd.DataFrame([feature_values], columns=required_features)
     
-    # 2. 创建更健壮的预测包装器
+    # 2. 更安全的预测包装器
     def predict_wrapper(X):
         if not isinstance(X, pd.DataFrame):
             X = pd.DataFrame(X, columns=required_features)
-        return model.predict_proba(X)[:, 1]  # 明确获取正类概率
+        proba = model.predict_proba(X)
+        # 处理二分类和多分类情况
+        return proba.values if hasattr(proba, 'values') else proba
     
-    # 3. 初始化解释器
-    explainer = shap.KernelExplainer(
+    # 3. 初始化解释器（使用最新API）
+    explainer = shap.Explainer(
         predict_wrapper,
         background,
-        keep_index=True  # 保持特征顺序
+        feature_names=required_features
     )
     
-    # 4. 计算SHAP值
-    shap_values = explainer.shap_values(input_data)
-    expected_value = explainer.expected_value
+    # 4. 计算SHAP值（显式处理输出）
+    shap_values = explainer(input_data)
     
-    # 5. 维度验证和调整
-    if isinstance(shap_values, list):
-        shap_values = np.array(shap_values)
+    # 5. 统一SHAP值格式
+    if len(shap_values.shape) == 3:  # 多分类输出 (n_classes, n_samples, n_features)
+        shap_values = shap_values[1]  # 取正类解释
+    elif len(shap_values.shape) == 2:  # 二分类输出 (n_samples, n_features)
+        pass  # 直接使用
     
-    # 确保shap_values是二维的 (n_samples, n_features)
-    if len(shap_values.shape) == 1:
-        shap_values = shap_values.reshape(1, -1)
-    
-    # 6. 特征一致性检查
-    assert len(input_data.iloc[0]) == shap_values.shape[1], \
-        f"特征数量不匹配！输入特征:{len(input_data.iloc[0])}，SHAP值特征:{shap_values.shape[1]}"
-    
-    # 7. 生成SHAP力图
+    # 6. 生成可视化
     st.subheader("SHAP Force Plot")
-    fig = shap.force_plot(
-        float(expected_value),
+    fig = shap.plots.force(
         shap_values[0],  # 第一个样本
-        input_data.iloc[0],
-        matplotlib=False,
+        matplotlib=True,
         show=False
     )
     st.pyplot(fig)
     
-    # 8. 生成SHAP摘要图
     st.subheader("SHAP Summary Plot")
     fig, ax = plt.subplots(figsize=(10, 6))
-    shap.summary_plot(
+    shap.plots.bar(
         shap_values,
-        background,
-        feature_names=required_features,  # 显式指定特征名
-        plot_type="bar",
         show=False
     )
     st.pyplot(fig)
 
 except Exception as e:
     st.error(f"Error generating SHAP explanation: {str(e)}")
-    # 打印调试信息
-    st.text(f"输入数据形状: {input_data.shape}")
-    if 'shap_values' in locals():
-        st.text(f"SHAP值形状: {np.array(shap_values).shape}")
-    st.text(f"背景数据形状: {background.shape if 'background' in locals() else 'N/A'}")
+    # 详细调试信息
+    st.code(f"""
+    错误详情: {repr(e)}
+    输入数据形状: {input_data.shape if 'input_data' in locals() else 'N/A'}
+    模型输出示例: {model.predict_proba(input_data.head(1)) if 'input_data' in locals() else 'N/A'}
+    SHAP值类型: {type(shap_values) if 'shap_values' in locals() else 'N/A'}
+    """, language='python')
