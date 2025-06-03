@@ -92,50 +92,57 @@ if st.button("Predict"):
     ax.axis('off')
     st.pyplot(fig)
 
-# 计算 SHAP 值
+# 计算SHAP值
 try:
-    # 准备背景数据（必须是DataFrame，且包含所有特征列）
+    # 1. 准备背景数据
     background = data[list(feature_ranges.keys())].sample(100, random_state=42)
     
-    # 创建预测函数包装器（适配AutoGluon的输入输出格式）
+    # 2. 创建预测函数包装器
     def predict_proba_wrapper(X):
         if isinstance(X, pd.DataFrame):
-            return model.predict_proba(X).values
-        else:
-            return model.predict_proba(pd.DataFrame(X, columns=feature_ranges.keys())).values
+            return model.predict_proba(X)
+        return model.predict_proba(pd.DataFrame(X, columns=feature_ranges.keys()))
     
-    # 初始化解释器
+    # 3. 初始化解释器
     explainer = shap.KernelExplainer(
         predict_proba_wrapper,
         background
     )
     
-    #  计算SHAP值
+    # 4. 计算SHAP值
     shap_values = explainer.shap_values(input_data)
     expected_value = explainer.expected_value
     
-    # 处理多分类/二分类的输出格式
+    # 5. 统一SHAP值格式处理
     if isinstance(shap_values, list):
-        # 多分类模型：选择正类（索引1）的SHAP值
-        shap_values = shap_values[1]
-        expected_value = expected_value[1]
+        # 如果是列表，取第一个元素（适用于二分类）
+        shap_values = shap_values[0]
+        expected_value = expected_value[0]
+    elif len(shap_values.shape) == 3:
+        # 如果是三维数组（多分类），取第一个类别
+        shap_values = shap_values[0]
+        expected_value = expected_value[0]
     
-    # 生成SHAP力图（新API格式）
+    # 6. 确保是一维数组
+    if len(shap_values.shape) == 2:
+        shap_values = shap_values[0]  # 取第一个样本
+    
+    # 7. 生成SHAP力图
     st.subheader("SHAP Force Plot")
-    fig = shap.plots.force(
-        expected_value[0],       # 第一个参数必须是基础值
-        shap_values=shap_values[0],     # 单个样本的SHAP值
-        features=input_data.iloc[0],    # 特征值
-        matplotlib=False,                # 不使用Matplotlib渲染
-        show=False                      # 不自动显示
+    fig = shap.force_plot(
+        expected_value,
+        shap_values,
+        input_data.iloc[0],
+        matplotlib=True,
+        show=False
     )
     st.pyplot(fig)
     
-    # 生成SHAP摘要图
+    # 8. 生成SHAP摘要图
     st.subheader("SHAP Summary Plot")
     fig, ax = plt.subplots(figsize=(10, 6))
     shap.summary_plot(
-        shap_values,
+        shap_values.reshape(1, -1),  # 确保是二维
         background,
         plot_type="bar",
         show=False
