@@ -126,7 +126,7 @@ try:
         expected_value[0],       # 第一个参数必须是基础值
         shap_values=shap_values[0],     # 单个样本的SHAP值
         features=input_data.iloc[0],    # 特征值
-        matplotlib=True,                # 使用Matplotlib渲染
+        matplotlib=False,                # 不使用Matplotlib渲染
         show=False                      # 不自动显示
     )
     st.pyplot(fig)
