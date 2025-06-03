@@ -123,7 +123,7 @@ try:
     # 生成SHAP力图（新API格式）
     st.subheader("SHAP Force Plot")
     fig = shap.plots.force(
-        base_value=expected_value,       # 第一个参数必须是基础值
+        expected_value,       # 第一个参数必须是基础值
         shap_values=shap_values[0],     # 单个样本的SHAP值
         features=input_data.iloc[0],    # 特征值
         matplotlib=True,                # 使用Matplotlib渲染
