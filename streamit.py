@@ -92,36 +92,36 @@ if st.button("Predict"):
     ax.axis('off')
     st.pyplot(fig)
 
-   # 计算 SHAP 值
+# 计算 SHAP 值
 try:
     # 使用样本数据作为背景
-    background = data.sample(100, random_state=42)
-
-    # 创建解释器
+    background = data[list(feature_ranges.keys())].sample(100, random_state=42)
+    
+    # 创建解释器 - 使用包装后的模型
+    def predict_proba_wrapper(X):
+        if isinstance(X, pd.DataFrame):
+            return model.predict_proba(X).values
+        else:
+            return model.predict_proba(pd.DataFrame(X, columns=feature_ranges.keys())).values
+    
     explainer = shap.KernelExplainer(
-        model.predict_proba,
+        predict_proba_wrapper,
         background
     )
-
+    
     # 计算SHAP值
     shap_values = explainer.shap_values(input_data)
-
-    # 检查SHAP值的结构
+    
+    # 处理SHAP值输出
     if isinstance(shap_values, list):
-        # 如果是列表，可能有多个类的SHAP值
-        if len(shap_values) > 1:
-            # 使用正类的SHAP值
-            shap_values_to_use = shap_values[1]
-            expected_value_to_use = explainer.expected_value[1]
-        else:
-            # 如果只有一个类，使用它
-            shap_values_to_use = shap_values[0]
-            expected_value_to_use = explainer.expected_value[0]
+        # 多分类情况
+        shap_values_to_use = shap_values[1]  # 使用正类的SHAP值
+        expected_value_to_use = explainer.expected_value[1]
     else:
-        # 如果不是列表，直接使用
+        # 二分类情况
         shap_values_to_use = shap_values
         expected_value_to_use = explainer.expected_value
-
+    
     # 生成 SHAP 力图
     st.subheader("SHAP Force Plot")
     fig, ax = plt.subplots(figsize=(10, 4))
@@ -134,12 +134,12 @@ try:
         figsize=(12, 4)
     )
     st.pyplot(fig)
-
-    # 也可以添加摘要图
+    
+    # 添加摘要图
     st.subheader("SHAP Summary Plot")
     fig, ax = plt.subplots(figsize=(10, 6))
     shap.summary_plot(
-        shap_values_to_use,  # 使用调整后的SHAP值
+        shap_values_to_use,
         background,
         plot_type="bar",
         show=False
