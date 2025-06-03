@@ -69,14 +69,15 @@ for feature, properties in feature_ranges.items():
         st.warning(f"未处理的特征类型: {feature}")
 
 features = np.array([feature_values])
- #预测与 SHAP 可视化
+ # 预测与 SHAP 可视化
 if st.button("Predict"):
     # 将输入数据转为DataFrame（AutoGluon需要）
     input_data = pd.DataFrame([feature_values], columns=feature_ranges.keys())
 
     # 获取预测概率
-    proba_df = model.predict_proba(input_data)
-    probability = proba_df.iloc[0, 1] * 100  # 获取正类的概率
+    wrapper = AutogluonWrapper(model, list(feature_ranges.keys()))
+    proba_df = wrapper.predict_proba(input_data)
+    probability = proba_df[0][1] * 100  # 获取正类的概率
 
     # 显示预测结果
     text = f"Based on feature values, predicted possibility of CVD is {probability:.2f}%"
@@ -96,9 +97,9 @@ if st.button("Predict"):
         # 使用样本数据作为背景
         background = data.sample(100, random_state=42)
 
-        # 创建解释器
+        # 创建解释器，使用包装后的模型
         explainer = shap.KernelExplainer(
-            model.predict_proba,
+            wrapper.predict_proba,
             background
         )
 
