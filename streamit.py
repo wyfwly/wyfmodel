@@ -94,46 +94,47 @@ if st.button("Predict"):
 
 # 计算SHAP值
 try:
-    # 1. 准备背景数据
-    background = data[list(feature_ranges.keys())].sample(100, random_state=42)
+    # 1. 确保使用完全相同的特征列
+    required_features = list(feature_ranges.keys())
+    background = data[required_features].sample(100, random_state=42)
+    input_data = pd.DataFrame([feature_values], columns=required_features)
     
-    # 2. 创建预测函数包装器
-    def predict_proba_wrapper(X):
-        if isinstance(X, pd.DataFrame):
-            return model.predict_proba(X)
-        return model.predict_proba(pd.DataFrame(X, columns=feature_ranges.keys()))
+    # 2. 创建更健壮的预测包装器
+    def predict_wrapper(X):
+        if not isinstance(X, pd.DataFrame):
+            X = pd.DataFrame(X, columns=required_features)
+        return model.predict_proba(X)[:, 1]  # 明确获取正类概率
     
     # 3. 初始化解释器
     explainer = shap.KernelExplainer(
-        predict_proba_wrapper,
-        background
+        predict_wrapper,
+        background,
+        keep_index=True  # 保持特征顺序
     )
     
     # 4. 计算SHAP值
     shap_values = explainer.shap_values(input_data)
     expected_value = explainer.expected_value
     
-    # 5. 统一SHAP值格式处理
+    # 5. 维度验证和调整
     if isinstance(shap_values, list):
-        # 如果是列表，取第一个元素（适用于二分类）
-        shap_values = shap_values[0]
-        expected_value = expected_value[0]
-    elif len(shap_values.shape) == 3:
-        # 如果是三维数组（多分类），取第一个类别
-        shap_values = shap_values[0]
-        expected_value = expected_value[0]
+        shap_values = np.array(shap_values)
     
-    # 6. 确保是一维数组
-    if len(shap_values.shape) == 2:
-        shap_values = shap_values[0]  # 取第一个样本
+    # 确保shap_values是二维的 (n_samples, n_features)
+    if len(shap_values.shape) == 1:
+        shap_values = shap_values.reshape(1, -1)
+    
+    # 6. 特征一致性检查
+    assert len(input_data.iloc[0]) == shap_values.shape[1], \
+        f"特征数量不匹配！输入特征:{len(input_data.iloc[0])}，SHAP值特征:{shap_values.shape[1]}"
     
     # 7. 生成SHAP力图
     st.subheader("SHAP Force Plot")
     fig = shap.force_plot(
-        expected_value,
-        shap_values,
+        float(expected_value),
+        shap_values[0],  # 第一个样本
         input_data.iloc[0],
-        matplotlib=True,
+        matplotlib=False,
         show=False
     )
     st.pyplot(fig)
@@ -142,8 +143,9 @@ try:
     st.subheader("SHAP Summary Plot")
     fig, ax = plt.subplots(figsize=(10, 6))
     shap.summary_plot(
-        shap_values.reshape(1, -1),  # 确保是二维
+        shap_values,
         background,
+        feature_names=required_features,  # 显式指定特征名
         plot_type="bar",
         show=False
     )
@@ -151,3 +153,8 @@ try:
 
 except Exception as e:
     st.error(f"Error generating SHAP explanation: {str(e)}")
+    # 打印调试信息
+    st.text(f"输入数据形状: {input_data.shape}")
+    if 'shap_values' in locals():
+        st.text(f"SHAP值形状: {np.array(shap_values).shape}")
+    st.text(f"背景数据形状: {background.shape if 'background' in locals() else 'N/A'}")
