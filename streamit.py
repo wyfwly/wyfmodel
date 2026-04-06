@@ -29,7 +29,7 @@ feature_ranges ={
  "NEUT_Abs":{"type":"numerical","min":0.000,"max":100,"default":6.17},
  "MONO_Pct":{"type":"numerical","min":0.000,"max":1,"default":0.1},
  "BASO_Pct":{"type":"numerical","min":0.000,"max":1,"default":0.01},
- "C1":{"type":"numerical","min":0.000,"max":1000.00,"default":150.0},
+ "Cl":{"type":"numerical","min":0.000,"max":1000.00,"default":150.0},
  "CREA":{"type":"numerical","min":0.000,"max":1500.00,"default":50.00},
  "C3":{"type":"numerical","min":0.000,"max":60.00,"default":1},
  "SSA_Ab":{"type":"categorical","options":[0,0.5,1],"default":0},
