@@ -8,7 +8,7 @@ from autogluon.tabular import TabularPredictor
 import os
 
 #加载保存的模型
-model= TabularPredictor.load("AutogluonModels\ag-20260402_113750/predictor.pkl")
+model= TabularPredictor.load("AutogluonModels\ag-20260402_113750")
 data = pd.read_csv("finaldata.csv")
 
 class AutogluonWrapper:
