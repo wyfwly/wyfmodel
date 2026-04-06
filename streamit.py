@@ -8,7 +8,7 @@ from autogluon.tabular import TabularPredictor
 import os
 
 #加载保存的模型
-model= TabularPredictor.load("AutogluonModels/ag-20250426_142741")
+model= TabularPredictor.load("AutogluonModels\ag-20260402_113750")
 data = pd.read_csv("finaldata.csv")
 
 class AutogluonWrapper:
@@ -25,19 +25,16 @@ class AutogluonWrapper:
         return self.ag_model.predict_proba(X).values
 #特征范围定义（根据提供的特征范围和数据类型）
 feature_ranges ={
- "BASO,10^9/L":{"type":"numerical","min":0.000,"max":0.1,"default":0.02},
- "CHE,U/L":{"type":"numerical","min":0.000,"max":15.00,"default":6.17},
- "MPV,fL":{"type":"numerical","min":0.000,"max":20.00,"default":10.73},
- "Hb,g/L":{"type":"numerical","min":0.000,"max":200,"default":110.0},
- "PLT,10^9/L":{"type":"numerical","min":0.000,"max":1000.00,"default":150.0},
- "u.WBC,/uL":{"type":"numerical","min":0.000,"max":1500.00,"default":50.00},
- "GLU,mmol/L":{"type":"numerical","min":0.000,"max":60.00,"default":6.00},
- "MCV,fL":{"type":"numerical","min":0.000,"max":150.00,"default":90.00},
- "GGT,U/L":{"type":"numerical","min":0.000,"max":1000.00,"default":50.00},
- "RDW-SD,fL":{"type":"numerical","min":0.000,"max":200,"default":50.00},
- "LY%":{"type":"numerical","min":0.000,"max":100.00,"default":24.00},
- "age,year":{"type":"numerical","min":18.00,"max":100.00,"default":43.00},
- "aRO52(1:100)":{"type":"categorical","options":[0,1,2,3],"default":0}
+"ALT":{"type":"numerical","min":0.000,"max":10000,"default":30},
+ "NEUT_Abs":{"type":"numerical","min":0.000,"max":100,"default":6.17},
+ "MONO_Pct":{"type":"numerical","min":0.000,"max":1,"default":0.1},
+ "BASO_Pct":{"type":"numerical","min":0.000,"max":1,"default":0.01},
+ "C1":{"type":"numerical","min":0.000,"max":1000.00,"default":150.0},
+ "CREA":{"type":"numerical","min":0.000,"max":1500.00,"default":50.00},
+ "C3":{"type":"numerical","min":0.000,"max":60.00,"default":1},
+ "SSA_Ab":{"type":"categorical","options":[0,0.5,1],"default":0},
+ "Scl70":{"type":"categorical","options":[0,0.5,1],"default":0},
+ "Urine_BIL":{"type":"categorical","options":[0,0.5,1],"default":0}
 }
 #Streamlit 界面
 st.title (" Prediction Model with SHAP Visualization ")
