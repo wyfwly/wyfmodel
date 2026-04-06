@@ -69,13 +69,14 @@ for feature, properties in feature_ranges.items():
         st.warning(f"未处理的特征类型: {feature}")
 
 features = np.array([feature_values])
- #预测与 SHAP 可视化
+ # 预测与 SHAP 可视化
 if st.button("Predict"):
     # 将输入数据转为DataFrame（AutoGluon需要）
     input_data = pd.DataFrame([feature_values], columns=feature_ranges.keys())
 
     # 获取预测概率
-    proba_df = model.predict_proba(input_data)
+    wrapper = AutogluonWrapper(model, list(feature_ranges.keys()))
+    proba_df = wrapper.predict_proba(input_data)
     probability = proba_df[0][1] * 100  # 获取正类的概率
 
     # 显示预测结果
@@ -91,43 +92,55 @@ if st.button("Predict"):
     ax.axis('off')
     st.pyplot(fig)
 
-    # 计算 SHAP 值
-    try:
-        # 使用样本数据作为背景
-        background = data.sample(100, random_state=42)
+# 计算SHAP值
+try:
+    # 1. 准备数据
+    required_features = list(feature_ranges.keys())
+    background = data[required_features].sample(100, random_state=42)
+    input_data = pd.DataFrame([feature_values], columns=required_features)
+    
+    # 2. 专用预测包装器（处理二分类输出）
+    def predict_wrapper(X):
+        if not isinstance(X, pd.DataFrame):
+            X = pd.DataFrame(X, columns=required_features)
+        proba = model.predict_proba(X)
+        # 明确返回正类概率作为一维数组
+        return proba.iloc[:, 1].values if hasattr(proba, 'iloc') else proba[:, 1]
+    
+    # 3. 初始化解释器
+    explainer = shap.Explainer(
+        predict_wrapper,
+        background,
+        feature_names=required_features
+    )
+    
+    # 4. 计算SHAP值
+    shap_values = explainer(input_data)
+    
+    # 5. 调试信息（可选）
+    st.write("SHAP值形状:", shap_values.shape)
+    st.write("SHAP基础值:", shap_values.base_values)
+    
+    # 6. 生成可视化
+    st.subheader("SHAP Force Plot")
+    fig = shap.plots.force(
+        shap_values[0],  # 直接使用Explanation对象
+        matplotlib=True,
+        show=False
+    )
+    st.pyplot(fig)
+    
+    st.subheader("SHAP Summary Plot")
+    fig, ax = plt.subplots(figsize=(10, 6))
+    shap.plots.bar(
+        shap_values,
+        show=False
+    )
+    st.pyplot(fig)
 
-        # 创建解释器
-        explainer = shap.KernelExplainer(
-            model.predict_proba,
-            background
-        )
-
-        # 计算SHAP值
-        shap_values = explainer.shap_values(input_data)
-
-        # 生成 SHAP 力图
-        st.subheader("SHAP Force Plot")
-        fig, ax = plt.subplots(figsize=(10, 4))
-        shap.force_plot(
-            explainer.expected_value[1],  # 使用正类的期望值
-            shap_values[1][0],  # 正类的SHAP值
-            input_data.iloc[0],
-            matplotlib=True,
-            show=False,
-            figsize=(12, 4)
-        )
-        st.pyplot(fig)
-
-        # 也可以添加摘要图
-        st.subheader("SHAP Summary Plot")
-        fig, ax = plt.subplots(figsize=(10, 6))
-        shap.summary_plot(
-            shap_values[1],  # 正类的SHAP值
-            background,
-            plot_type="bar",
-            show=False
-        )
-        st.pyplot(fig)
-
-    except Exception as e:
-        st.error(f"Error generating SHAP explanation: {str(e)}")
+except Exception as e:
+    st.error(f"Error generating SHAP explanation: {str(e)}")
+    st.code(f"""
+    模型输出类型: {type(model.predict_proba(input_data.head(1)))}
+    SHAP值内容: {str(dir(shap_values)) if 'shap_values' in locals() else 'N/A'}
+    """, language='python')
